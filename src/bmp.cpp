@@ -5,8 +5,10 @@ bmp::bmp() {
 
 void bmp::readBmp(FILE *fp) {
     readBmpHeader(fp);
-    printBmpHeader();
+//    printBmpHeader();
     readMatrixRGB(fp);
+    writeRGBToDifferentFiles();
+    exeptedValueM();
 }
 
 void bmp::writeBmp(FILE *fp) {
@@ -74,10 +76,10 @@ void bmp::writeBmpHeader(FILE *fp) {
 void bmp::readMatrixRGB(FILE *fp) {
     MatrixRGB = new sRGB* [bmpHeader.biHeight];
 
-    //Lines of bmp file has reversed posisions
+    //Lines of bmp file has reversed position
     for (int i = bmpHeader.biHeight - 1; i >= 0; --i) {
         MatrixRGB[i] = new sRGB[bmpHeader.biWidth];
-        fread(&(MatrixRGB[i]), bmpHeader.biWidth, sizeof(sRGB), fp);
+        fread(&(MatrixRGB[i][0]), bmpHeader.biWidth, sizeof(sRGB), fp);
 
         /*Size of every bmp file line shoud be multiply by 4 bytes.
          * So we skip garbage bits in the of line.
@@ -97,12 +99,12 @@ void bmp::writeMatrixRGB(FILE *fp) {
          */
         if (bmpHeader.biWidth % 4 != 0) {
             char tmp[4] {0};
-            fwrite(&tmp, 4 - bmpHeader.biWidth % 4, sizeof(sRGB), fp);
+            fwrite(&tmp, 4 - bmpHeader.biWidth % 4, 1, fp);
         }
     }
 }
 
-void bmp::writeRGBToDifferentFile() {
+void bmp::writeRGBToDifferentFiles() {
     FILE *fR = fopen("r.bmp", "wb");
     FILE *fG = fopen("g.bmp", "wb");
     FILE *fB = fopen("b.bmp", "wb");
@@ -123,14 +125,37 @@ void bmp::writeRGBToDifferentFile() {
         }
         if (bmpHeader.biWidth % 4 != 0) {
             char tmp[4] {0};
-            fwrite(&tmp, 4 - bmpHeader.biWidth % 4, sizeof(sRGB), fR);
-            fwrite(&tmp, 4 - bmpHeader.biWidth % 4, sizeof(sRGB), fG);
-            fwrite(&tmp, 4 - bmpHeader.biWidth % 4, sizeof(sRGB), fB);
+            fwrite(&tmp, 4 - bmpHeader.biWidth % 4, 1, fR);
+            fwrite(&tmp, 4 - bmpHeader.biWidth % 4, 1, fG);
+            fwrite(&tmp, 4 - bmpHeader.biWidth % 4, 1, fB);
         }
     }
     fclose(fR);
     fclose(fG);
     fclose(fB);
+}
+
+sRGB *bmp::exeptedValueM() {
+    sRGB *tmp = new sRGB;
+    uint32_t r;
+    uint32_t g;
+    uint32_t b;
+
+    r = g = b = 0;
+    for (int i = 0; i < bmpHeader.biHeight; ++i) {
+        for (int j = 0; j < bmpHeader.biWidth; ++j) {
+            r += MatrixRGB[i][j].R;
+            g += MatrixRGB[i][j].G;
+            b += MatrixRGB[i][j].B;
+        }
+    }
+    tmp->R = (uint8_t)(r / (bmpHeader.biWidth * bmpHeader.biHeight));
+    tmp->G = (uint8_t)(g / (bmpHeader.biWidth * bmpHeader.biHeight));
+    tmp->B = (uint8_t)(b / (bmpHeader.biWidth * bmpHeader.biHeight));
+    std::cout << "R: " << (int)tmp->R << std::endl;
+    std::cout << "G: " << (int)tmp->G << std::endl;
+    std::cout << "B: " << (int)tmp->B << std::endl;
+    return tmp;
 }
 
 bmp::~bmp() {
